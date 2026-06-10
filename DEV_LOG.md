@@ -97,6 +97,20 @@ Windows 适配：
 
 **价值**：用户不用在终端表格里找路径，下载完成后直接看结果区，点击文件名即可进入生成的字幕笔记。
 
+
+### v1.3 -- CSV 报告兜底识别
+
+**需求触发**：实际运行时，Rich 终端表格可能只把“文件名”显示出来，真实 Obsidian 链接藏在终端超链接协议里；内嵌面板不一定能完整拿到这段协议，导致结果区没有识别到生成文件。
+
+**实现方案**：
+- 运行脚本时记录开始时间。
+- 脚本结束后扫描当前 vault 的 `11-subtitles/_download_report_*.csv`。
+- 只读取本轮运行后生成的报告，解析 CSV 表头中的 `filepath` 列。
+- 将 `status=success` 且以 `.md` 结尾的文件路径加入 `Generated Markdown files`。
+- 新增 **Refresh files** 按钮，手动读取最近 24 小时的报告作为兜底。
+
+**价值**：即使终端输出没有完整 Markdown 地址，只要脚本生成了下载报告，插件仍然能实例化出真实的 Markdown 文件入口。
+
 ---
 
 ## 3. 踩坑记录
@@ -109,6 +123,7 @@ Windows 适配：
 | 本机路径不适合公开上传 | `data.json` 和默认设置包含用户机器路径 | 将 `data.json` 加入 `.gitignore`，提供 `data.example.json` | v1.0 |
 | 内嵌输出里的 Markdown 路径不能点击 | 原来输出区只创建纯文本 `span`，OSC 8 链接会被当成 ANSI 控制符清掉 | 解析 OSC 8 / Obsidian URI / `.md` 路径，渲染成可点击链接并用 `openLinkText()` 打开 | v1.1 |
 | 可点击路径在终端输出里不够明显 | 用户需要从表格/日志里找链接，发现成本高 | 新增 `Generated Markdown files` 结果区，集中展示本轮生成的 Markdown 文件并支持 Open latest | v1.2 |
+| 终端只显示文件名，结果区没有文件 | Rich 表格的真实链接可能藏在终端超链接协议里，内嵌面板拿不到完整地址 | 脚本结束后读取 `_download_report_*.csv` 的 `filepath` 列，并提供 Refresh files 兜底 | v1.3 |
 | Linux 插件不能直接复用 | `gnome-terminal-loader` 依赖 Linux/GNOME | 只借鉴 ribbon + terminal launcher 思路，终端实现换成 Windows 方案 | v0.2 |
 
 ---

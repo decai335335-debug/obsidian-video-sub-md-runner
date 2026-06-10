@@ -29,6 +29,7 @@ class VideoSubMdView extends ItemView {
     this.statusEl = null;
     this.generatedListEl = null;
     this.generatedLinks = new Map();
+    this.runStartedAt = 0;
   }
 
   getViewType() { return VIEW_TYPE; }
@@ -59,6 +60,7 @@ class VideoSubMdView extends ItemView {
     const generatedHeader = generatedPanel.createDiv({ cls: 'video-sub-md-generated-header' });
     generatedHeader.createSpan({ text: 'Generated Markdown files' });
     generatedHeader.createEl('button', { text: 'Open latest' }, (btn) => btn.addEventListener('click', () => this.openLatestGeneratedLink()));
+    generatedHeader.createEl('button', { text: 'Refresh files' }, (btn) => btn.addEventListener('click', () => this.loadGeneratedFilesFromReports(true)));
     generatedHeader.createEl('button', { text: 'Clear files' }, (btn) => btn.addEventListener('click', () => this.clearGeneratedLinks()));
     this.generatedListEl = generatedPanel.createDiv({ cls: 'video-sub-md-generated-list' });
     this.renderGeneratedLinks();
@@ -216,6 +218,99 @@ class VideoSubMdView extends ItemView {
     this.plugin.openOutputTarget(latest.href, latest.label);
   }
 
+  loadGeneratedFilesFromReports(includeRecentFallback = false) {
+    const reports = this.findCandidateReportFiles(includeRecentFallback);
+    let added = 0;
+    for (const report of reports) {
+      added += this.addGeneratedFilesFromCsv(report);
+    }
+    if (includeRecentFallback) {
+      new Notice(added ? `Loaded ${added} generated file(s) from reports` : 'No generated Markdown file found in recent reports');
+    }
+    this.renderGeneratedLinks();
+    this.focusInput();
+  }
+
+  findCandidateReportFiles(includeRecentFallback) {
+    const adapter = this.app.vault.adapter;
+    const basePath = adapter && adapter.basePath ? adapter.basePath : '';
+    if (!basePath) return [];
+
+    const reportDir = path.join(basePath, '11-subtitles');
+    if (!fs.existsSync(reportDir)) return [];
+
+    const minTime = this.runStartedAt ? this.runStartedAt - 5000 : 0;
+    const fallbackMinTime = Date.now() - 24 * 60 * 60 * 1000;
+    const threshold = includeRecentFallback ? Math.min(minTime || Date.now(), fallbackMinTime) : minTime;
+
+    return fs.readdirSync(reportDir)
+      .filter((name) => /^_download_report_.*\.csv$/i.test(name))
+      .map((name) => path.join(reportDir, name))
+      .filter((file) => {
+        try {
+          return fs.statSync(file).mtimeMs >= threshold;
+        } catch (error) {
+          return false;
+        }
+      })
+      .sort((a, b) => fs.statSync(a).mtimeMs - fs.statSync(b).mtimeMs);
+  }
+
+  addGeneratedFilesFromCsv(reportPath) {
+    let added = 0;
+    let text = '';
+    try {
+      text = fs.readFileSync(reportPath, 'utf8').replace(/^\uFEFF/, '');
+    } catch (error) {
+      return 0;
+    }
+
+    const lines = text.split(/\r?\n/).filter((line) => line.trim());
+    if (lines.length < 2) return 0;
+
+    const headers = this.parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
+    const filepathIndex = headers.indexOf('filepath');
+    const statusIndex = headers.indexOf('status');
+    if (filepathIndex < 0) return 0;
+
+    for (const line of lines.slice(1)) {
+      const cols = this.parseCsvLine(line);
+      const status = statusIndex >= 0 ? String(cols[statusIndex] || '').toLowerCase() : 'success';
+      const filePath = String(cols[filepathIndex] || '').trim();
+      if (!filePath || (status && status !== 'success')) continue;
+      if (!filePath.toLowerCase().endsWith('.md')) continue;
+      const before = this.generatedLinks.size;
+      this.addGeneratedLink(filePath, path.basename(filePath));
+      if (this.generatedLinks.size > before) added += 1;
+    }
+    return added;
+  }
+
+  parseCsvLine(line) {
+    const cells = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i += 1) {
+      const ch = line[i];
+      const next = line[i + 1];
+      if (ch === '"') {
+        if (inQuotes && next === '"') {
+          current += '"';
+          i += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === ',' && !inQuotes) {
+        cells.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    cells.push(current);
+    return cells;
+  }
+
   setStatus(text) {
     if (this.statusEl) this.statusEl.setText(text);
   }
@@ -233,6 +328,7 @@ class VideoSubMdView extends ItemView {
     }
 
     this.clearGeneratedLinks();
+    this.runStartedAt = Date.now();
 
     const settings = this.plugin.settings;
     const args = ['-u', settings.scriptPath];
@@ -268,6 +364,7 @@ class VideoSubMdView extends ItemView {
     });
     this.proc.on('close', (code) => {
       this.append(`\n[process exited] code ${code}\n`, code === 0 ? 'video-sub-md-ok' : 'video-sub-md-error');
+      this.loadGeneratedFilesFromReports(false);
       this.proc = null;
       this.setStatus('Exited');
       this.focusInput();
