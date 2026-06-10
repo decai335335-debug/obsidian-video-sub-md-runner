@@ -83,6 +83,20 @@ Windows 适配：
 
 **价值**：内嵌伪终端不只是显示日志，还能成为下载结果的操作面板，让“下载字幕 -> 打开 Markdown -> 继续编辑”闭环留在 Obsidian 内。
 
+
+### v1.2 -- 生成文件结果区
+
+**需求触发**：用户反馈只在终端输出中寻找可点击路径仍然不够明显，希望在终端之外留一块区域，集中展示本轮刚生成的字幕 Markdown 文件。
+
+**实现方案**：
+- 在内嵌面板的输出区和输入框之间新增 `Generated Markdown files` 区域。
+- 输出解析到 Markdown 链接时，同时加入结果区。
+- 结果区按本轮运行去重展示文件名和原始链接。
+- 新增 **Open latest** 快捷入口，直接打开最近检测到的 Markdown 文件。
+- 每次重新运行脚本时清空上一轮结果，避免新旧文件混在一起。
+
+**价值**：用户不用在终端表格里找路径，下载完成后直接看结果区，点击文件名即可进入生成的字幕笔记。
+
 ---
 
 ## 3. 踩坑记录
@@ -94,6 +108,7 @@ Windows 适配：
 | `cmd /c start powershell.exe` 仍不弹窗 | 子进程窗口创建在用户环境中不稳定 | 改用 `shell.openPath()` 打开 `.cmd` 文件 | v0.4 -> v1.0 |
 | 本机路径不适合公开上传 | `data.json` 和默认设置包含用户机器路径 | 将 `data.json` 加入 `.gitignore`，提供 `data.example.json` | v1.0 |
 | 内嵌输出里的 Markdown 路径不能点击 | 原来输出区只创建纯文本 `span`，OSC 8 链接会被当成 ANSI 控制符清掉 | 解析 OSC 8 / Obsidian URI / `.md` 路径，渲染成可点击链接并用 `openLinkText()` 打开 | v1.1 |
+| 可点击路径在终端输出里不够明显 | 用户需要从表格/日志里找链接，发现成本高 | 新增 `Generated Markdown files` 结果区，集中展示本轮生成的 Markdown 文件并支持 Open latest | v1.2 |
 | Linux 插件不能直接复用 | `gnome-terminal-loader` 依赖 Linux/GNOME | 只借鉴 ribbon + terminal launcher 思路，终端实现换成 Windows 方案 | v0.2 |
 
 ---

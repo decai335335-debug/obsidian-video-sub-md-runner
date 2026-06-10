@@ -27,6 +27,8 @@ class VideoSubMdView extends ItemView {
     this.outputEl = null;
     this.inputEl = null;
     this.statusEl = null;
+    this.generatedListEl = null;
+    this.generatedLinks = new Map();
   }
 
   getViewType() { return VIEW_TYPE; }
@@ -52,6 +54,14 @@ class VideoSubMdView extends ItemView {
 
     this.outputEl = container.createEl('pre', { cls: 'video-sub-md-output' });
     this.outputEl.addEventListener('click', () => this.focusInput());
+
+    const generatedPanel = container.createDiv({ cls: 'video-sub-md-generated' });
+    const generatedHeader = generatedPanel.createDiv({ cls: 'video-sub-md-generated-header' });
+    generatedHeader.createSpan({ text: 'Generated Markdown files' });
+    generatedHeader.createEl('button', { text: 'Open latest' }, (btn) => btn.addEventListener('click', () => this.openLatestGeneratedLink()));
+    generatedHeader.createEl('button', { text: 'Clear files' }, (btn) => btn.addEventListener('click', () => this.clearGeneratedLinks()));
+    this.generatedListEl = generatedPanel.createDiv({ cls: 'video-sub-md-generated-list' });
+    this.renderGeneratedLinks();
 
     const inputWrap = container.createDiv({ cls: 'video-sub-md-input-wrap' });
     this.inputEl = inputWrap.createEl('textarea', {
@@ -94,6 +104,7 @@ class VideoSubMdView extends ItemView {
           this.plugin.openOutputTarget(chunk.href, chunk.label);
         });
         this.outputEl.appendChild(link);
+        this.addGeneratedLink(chunk.href, chunk.label);
       } else {
         const span = document.createElement('span');
         if (cls) span.className = cls;
@@ -139,6 +150,72 @@ class VideoSubMdView extends ItemView {
     return chunks;
   }
 
+
+  addGeneratedLink(href, label) {
+    if (!this.isGeneratedMarkdownTarget(href)) return;
+    const key = href;
+    const cleanLabel = this.formatGeneratedLabel(href, label);
+    this.generatedLinks.set(key, { href, label: cleanLabel });
+    this.renderGeneratedLinks();
+  }
+
+  isGeneratedMarkdownTarget(href) {
+    return href.startsWith('obsidian://open') || href.startsWith('file:///') || /^[A-Za-z]:[\\/].+\.md$/i.test(href);
+  }
+
+  formatGeneratedLabel(href, label) {
+    const text = stripAnsi(String(label || href)).trim();
+    if (text && text !== href) return text;
+    try {
+      if (href.startsWith('obsidian://open')) {
+        const url = new URL(href);
+        const file = url.searchParams.get('file');
+        if (file) return decodeURIComponent(file).split(/[\\/]/).pop() || decodeURIComponent(file);
+      }
+    } catch (error) {
+      // Fall back to path parsing below.
+    }
+    return href.replace(/\\/g, '/').split('/').pop() || href;
+  }
+
+  renderGeneratedLinks() {
+    if (!this.generatedListEl) return;
+    this.generatedListEl.empty();
+    const items = Array.from(this.generatedLinks.values());
+    if (!items.length) {
+      this.generatedListEl.createDiv({ cls: 'video-sub-md-generated-empty', text: 'No generated Markdown file detected yet.' });
+      return;
+    }
+    for (const item of items) {
+      const row = this.generatedListEl.createDiv({ cls: 'video-sub-md-generated-row' });
+      const link = row.createEl('a', { text: item.label, cls: 'video-sub-md-generated-link' });
+      link.href = '#';
+      link.title = item.href;
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        this.plugin.openOutputTarget(item.href, item.label);
+      });
+      row.createDiv({ cls: 'video-sub-md-generated-path', text: item.href });
+    }
+  }
+
+  clearGeneratedLinks() {
+    this.generatedLinks.clear();
+    this.renderGeneratedLinks();
+    this.focusInput();
+  }
+
+  openLatestGeneratedLink() {
+    const items = Array.from(this.generatedLinks.values());
+    const latest = items[items.length - 1];
+    if (!latest) {
+      new Notice('No generated Markdown file detected yet');
+      this.focusInput();
+      return;
+    }
+    this.plugin.openOutputTarget(latest.href, latest.label);
+  }
+
   setStatus(text) {
     if (this.statusEl) this.statusEl.setText(text);
   }
@@ -154,6 +231,8 @@ class VideoSubMdView extends ItemView {
       this.focusInput();
       return;
     }
+
+    this.clearGeneratedLinks();
 
     const settings = this.plugin.settings;
     const args = ['-u', settings.scriptPath];

@@ -43,6 +43,7 @@
 | 可见外部终端 | 支持 `input()`、粘贴链接、选择菜单等真实交互 |
 | 内嵌面板运行 | 简单场景下可在 Obsidian 面板里查看输出并发送输入 |
 | 输出路径可点击 | 识别脚本输出中的 `obsidian://`、`file:///`、vault 内 `.md` 路径，点击后直接在 Obsidian 打开笔记 |
+| 生成文件结果区 | 在内嵌终端下方单独列出本轮生成的 Markdown 文件，点击文件名或 **Open latest** 即可进入笔记 |
 | 插件设置页 | 可修改 Python 路径、项目目录、脚本路径，不需要改源码 |
 | 本地配置排除提交 | `data.json` 保存个人路径，但默认不上传到 GitHub |
 
@@ -118,7 +119,8 @@ styles.css
 1. 使用内嵌面板运行脚本。
 2. 等脚本输出下载结果。
 3. 如果输出中包含 `obsidian://open?...`、`file:///...` 或 vault 内的 `.md` 路径，面板会显示为可点击链接。
-4. 点击链接，插件会优先调用 Obsidian 的 `openLinkText()` 在当前 vault 中打开对应笔记。
+4. 同时，路径会被收集到 **Generated Markdown files** 结果区。
+5. 点击结果区里的文件名，或点击 **Open latest**，插件会优先调用 Obsidian 的 `openLinkText()` 在当前 vault 中打开对应笔记。
 
 ---
 

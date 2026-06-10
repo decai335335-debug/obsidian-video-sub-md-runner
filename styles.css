@@ -88,3 +88,68 @@
 .video-sub-md-link:hover {
   color: var(--link-color-hover);
 }
+
+.video-sub-md-generated {
+  max-height: 32%;
+  min-height: 86px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+}
+
+.video-sub-md-generated-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+}
+
+.video-sub-md-generated-header span {
+  margin-right: auto;
+}
+
+.video-sub-md-generated-header button {
+  padding: 2px 8px;
+  font-size: var(--font-ui-smaller);
+}
+
+.video-sub-md-generated-list {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.video-sub-md-generated-empty {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.video-sub-md-generated-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 4px;
+  background: var(--background-primary);
+}
+
+.video-sub-md-generated-link {
+  color: var(--link-color);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.video-sub-md-generated-path {
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
