@@ -66,3 +66,9 @@
 .video-sub-md-ok {
   color: var(--text-success);
 }
+
+.video-sub-md-hint {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.4;
+}

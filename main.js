@@ -48,6 +48,10 @@ class VideoSubMdView extends ItemView {
     toolbar.createEl('button', { text: '清空' }, (btn) => btn.addEventListener('click', () => this.clearOutput()));
 
     this.statusEl = toolbar.createSpan({ cls: 'video-sub-md-status', text: '就绪' });
+    container.createDiv({
+      cls: 'video-sub-md-hint',
+      text: '伪终端面板：Enter 发送，Shift+Enter 换行。复杂 TUI/快捷键请使用外部终端。'
+    });
     this.outputEl = container.createEl('pre', { cls: 'video-sub-md-output' });
 
     const inputRow = container.createDiv({ cls: 'video-sub-md-input-row' });
@@ -204,6 +208,10 @@ module.exports = class VideoSubMdRunnerPlugin extends Plugin {
 
     this.addRibbonIcon('terminal-square', '打开 video-sub-md 终端', () => this.openProjectTerminal());
     this.addRibbonIcon('file-terminal', '运行 video-sub-md main.py', () => this.runExternalTerminal());
+    this.addRibbonIcon('panel-right', '内嵌运行 video-sub-md', async () => {
+      const view = await this.activateView();
+      view.runScript();
+    });
 
     this.addCommand({
       id: 'open-video-sub-md-terminal',
